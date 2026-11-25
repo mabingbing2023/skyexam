@@ -1900,6 +1900,7 @@ async function submitPracticeAnswer(qid, selected) {
   
   const data = await api('/api/submit', 'POST', { id: qid, selected });
   showPracticeResult(selected, data.answer, data.explanation);
+  if (data && data.success) refreshDailyWidget();
   
   // 标记正确/错误选项
   document.querySelectorAll('#practice-options .option-item').forEach(item => {
@@ -2842,23 +2843,26 @@ function initApp() {
     state.totalQuestions = data.count || 0;
   });
   // 侧栏今日刷题仪表盘
-  api('/api/daily-stats').then(data => {
-    if (!data || !data.success) return;
-    const today = new Date();
-    const ds = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
-    const info = (data.all_days || []).find(d => d.date === ds);
-    const numEl = document.getElementById('nav-daily-num');
-    const subEl = document.getElementById('nav-daily-sub');
-    if (!numEl || !subEl) return;
-    if (info && info.count > 0) {
-      const acc = info.count > 0 ? Math.round(info.correct / info.count * 100) : 0;
-      numEl.textContent = info.count;
-      subEl.textContent = `正确 ${info.correct} 题 · 正确率 ${acc}%`;
-    } else {
-      numEl.textContent = '0';
-      subEl.textContent = '今日还未刷题，开始吧';
-    }
-  });
+  refreshDailyWidget();
+}
+
+async function refreshDailyWidget() {
+  const data = await api('/api/daily-stats');
+  if (!data || !data.success) return;
+  const today = new Date();
+  const ds = `${today.getFullYear()}-${String(today.getMonth()+1).padStart(2,'0')}-${String(today.getDate()).padStart(2,'0')}`;
+  const info = (data.all_days || []).find(d => d.date === ds);
+  const numEl = document.getElementById('nav-daily-num');
+  const subEl = document.getElementById('nav-daily-sub');
+  if (!numEl || !subEl) return;
+  if (info && info.count > 0) {
+    const acc = info.count > 0 ? Math.round(info.correct / info.count * 100) : 0;
+    numEl.textContent = info.count;
+    subEl.textContent = `正确 ${info.correct} 题 · 正确率 ${acc}%`;
+  } else {
+    numEl.textContent = '0';
+    subEl.textContent = '今日还未刷题，开始吧';
+  }
 }
 
 window.onload = () => {
